@@ -9,6 +9,8 @@ import pymongo
 import certifi
 import time
 import traceback
+from PyPDF2 import PdfFileReader
+import io
 
 load_dotenv()
 
@@ -18,6 +20,8 @@ app = FastAPI()
 COUPONS_URL = os.getenv('COUPONS_URL')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+FUEL_ERROR_TEXT ="יתכן שהכתובת הוחלפה או הוזנה לא נכון"
 
 
 async def check_users():
@@ -155,6 +159,110 @@ async def send_coupons_list(coupons):
 
 
 
+def get_fuel_settings():
+    ca = certifi.where()
+    client = pymongo.MongoClient(os.environ.get("MONGODB_ACCESS"), tlsCAFile=ca)
+    db = client.fuel
+    fuel_settings = db.settings.find_one({"_id": 1})
+    return fuel_settings["month"], fuel_settings["year"]
+
+async def get_data_from_gov():
+    print("Checking fuel costs...")
+    months = ["jan", "feb", "march", "april", "may", "june", "july", "august", "sep", "october", "nov", "dec"]
+    months_full = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+    gov_url = "https://www.gov.il/BlobFolder/news/fuel-{month}-{year}/he/fuel-{index}-{year}.pdf"
+    gov_alt_url = "https://www.gov.il/BlobFolder/news/fuel-{month}-{year}/he/{index}-{year}.pdf"
+    month, year = get_fuel_settings()
+    try:
+        print(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
+        response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
+        if FUEL_ERROR_TEXT not in response.text:
+            await get_from_pdf(response, month, year)
+        else:
+            print(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
+            response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
+            if FUEL_ERROR_TEXT not in response.text:
+                await get_from_pdf(response, month, year)
+            else:
+                print(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
+                response = requests.get(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
+                if FUEL_ERROR_TEXT not in response.text:
+                    await get_from_pdf(response, month, year)
+                else:
+                    print(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
+                    response = requests.get(
+                        gov_alt_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
+                    if FUEL_ERROR_TEXT not in response.text:
+                        await get_from_pdf(response, month, year)
+                    else:
+                        print(gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"))
+                        response = requests.get(
+                            gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"))
+                        if FUEL_ERROR_TEXT not in response.text:
+                            await get_from_pdf(response, month, year)
+    except Exception as e:
+        print(e)
+        print("error")
+        print(traceback.format_exc())
+
+
+async def check_fuel_users():
+    ca = certifi.where()
+    client = pymongo.MongoClient(os.environ.get("MONGODB_ACCESS"), tlsCAFile=ca)
+    db = client.fuel
+    chat_ids = db.registered.find()
+    for chat_id in chat_ids:
+        try:
+            print(chat_id["_id"])
+            await application.bot.send_message(chat_id=chat_id["_id"], text="Fuel")
+        except Exception as e:
+            print(e)
+            db.registered.delete_many(chat_id)
+            print("remove user")
+
+async def get_from_pdf(response, month, year):
+    ca = certifi.where()
+    client = pymongo.MongoClient(os.environ.get("MONGODB_ACCESS"), tlsCAFile=ca)
+    db = client.fuel
+    registered = db.registered.find()
+    await check_fuel_users()
+    with io.BytesIO(response.content) as f:
+        pdf = PdfFileReader(f)
+        numpage = 1
+        page = pdf.getPage(numpage)
+        page_content = page.extractText()
+        pc = page_content.split("\n")
+        pc = list(filter(lambda a: a != "" and a != " ", pc))
+        for i in range(len(pc)):
+            if pc[i] == '-':
+                pc[i + 1] = pc[i] + pc[i + 1]
+        for i in range(pc.count("-")):
+            pc.remove("-")
+        pc = pc[-16:]
+        if "-" in pc[3]:
+            perc = pc[3].replace("-", "")
+            price = pc[1] + " ₪ לליטר"
+            message = f"מחיר הדלק הולך לרדת ב{perc} ויעמוד על {price}. כדאי לחכות לתדלק אחריי הירידה."
+        else:
+            price = pc[1] + " ₪"
+            message = f"מחיר הדלק הולך לעלות ב{pc[3]} ויעמוד על {price}. כדאי לתדלק עכשיו."
+        for user in registered:
+            await application.bot.send_message(chat_id=user["_id"], text=message)
+        update_fuel_settings(month, year)
+
+def update_fuel_settings(month, year):
+    ca = certifi.where()
+    client = pymongo.MongoClient(os.environ.get("MONGODB_ACCESS"), tlsCAFile=ca)
+    db = client.fuel
+    query = {"_id": 1}
+    if month == 11:
+        month = 0
+        year += 1
+    else:
+        month += 1
+    db.settings.replace_one(query, {"_id": 1, "month": month, "year": year})
+
+
 @app.get("/coupons")
 async def coupons(request: Request):
     authorization = request.headers.get("Authorization")
@@ -176,4 +284,5 @@ async def fuel(request: Request):
     authorization = request.headers.get("Authorization")
     if authorization != os.getenv('AUTHORIZATION'):
         return {"error": "Unauthorized"}
+    await get_data_from_gov()
     return {"message": "Hello World"}
