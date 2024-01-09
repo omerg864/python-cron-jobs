@@ -261,6 +261,23 @@ def update_fuel_settings(month, year):
     db.settings.replace_one(query, {"_id": 1, "month": month, "year": year})
 
 
+async def check_movies():
+    print("Checking movies...")
+    ca = certifi.where()
+    client = pymongo.MongoClient(os.environ.get("MONGODB_ACCESS"), tlsCAFile=ca)
+    db = client.movie_alerts
+    movies = db.alerts.find()
+    for movie in movies:
+        movie_link = movie['movie_link']
+        r = requests.get(movie_link, headers={'User-Agent': 'Mozilla/5.0'}).text
+        soup = BeautifulSoup(r, 'html.parser')
+        if "Page not found (Error 404)" not in soup.title.string:
+            db.alerts.delete_one({"_id": movie['_id']})
+            movie_name = movie['movie_name']
+            chat_id = movie['chat_id']
+            await application.bot.send_message(chat_id=chat_id, text="Hey! " + movie_name + " is out! Check it out here: " + movie_link)
+            await application.bot.send_message(chat_id=chat_id, text="Also I removed the movie from the movie alert list!")
+
 @app.get("/coupons")
 async def coupons(request: Request):
     authorization = request.headers.get("Authorization")
@@ -275,7 +292,8 @@ async def movies(request: Request):
     authorization = request.headers.get("Authorization")
     if authorization != os.getenv('AUTHORIZATION'):
         return {"error": "Unauthorized"}
-    return {"message": "Hello World"}
+    await check_movies()
+    return {"message": "Success"}
 
 @app.get("/fuel")
 async def fuel(request: Request):
@@ -283,4 +301,4 @@ async def fuel(request: Request):
     if authorization != os.getenv('AUTHORIZATION'):
         return {"error": "Unauthorized"}
     await get_data_from_gov()
-    return {"message": "Hello World"}
+    return {"message": "Success"}
