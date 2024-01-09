@@ -21,7 +21,7 @@ COUPONS_URL = os.getenv('COUPONS_URL')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-FUEL_ERROR_TEXT ="יתכן שהכתובת הוחלפה או הוזנה לא נכון"
+FUEL_ERROR_TEXT ="https://maintenance.gov.il/img/Bird-looking-and-standing-on-sign.png"
 
 
 async def check_users():
