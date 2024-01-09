@@ -260,6 +260,19 @@ def update_fuel_settings(month, year):
         month += 1
     db.settings.replace_one(query, {"_id": 1, "month": month, "year": year})
 
+async def check_movies_user(chat_id):
+    ca = certifi.where()
+    client = pymongo.MongoClient(os.environ.get("MONGODB_ACCESS"), tlsCAFile=ca)
+    db = client.movie_alerts
+    verify = True
+    try:
+        await application.bot.send_message(chat_id=chat_id, text="movie update")
+    except Exception as e:
+        print(e)
+        verify = False
+        db.alerts.delete_many(chat_id)
+        print("remove user")
+    return verify
 
 async def check_movies():
     print("Checking movies...")
@@ -275,6 +288,9 @@ async def check_movies():
             db.alerts.delete_one({"_id": movie['_id']})
             movie_name = movie['movie_name']
             chat_id = movie['chat_id']
+            verify = await check_movies_user(chat_id)
+            if not verify:
+                continue
             await application.bot.send_message(chat_id=chat_id, text="Hey! " + movie_name + " is out! Check it out here: " + movie_link)
             await application.bot.send_message(chat_id=chat_id, text="Also I removed the movie from the movie alert list!")
 
