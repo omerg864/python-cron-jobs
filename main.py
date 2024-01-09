@@ -197,6 +197,7 @@ async def get_data_from_gov():
                         print(gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"))
                         response = requests.get(
                             gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"), headers={'user agent': 'datagov-external-client'})
+                        print(response.text)
                         if response.headers.get('content-type') == 'application/pdf':
                             await get_from_pdf(response, month, year)
     except Exception as e:
