@@ -31,7 +31,6 @@ async def check_users():
     chat_ids = db.registered.find()
     for chat_id in chat_ids:
         try:
-            print(chat_id["_id"])
             await application.bot.send_message(chat_id=chat_id["_id"], text="Coupons")
         except Exception as e:
             print(e)
@@ -177,6 +176,8 @@ async def get_data_from_gov():
         print(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
         response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
         if FUEL_ERROR_TEXT not in response.text:
+            print(response.text)
+            print(FUEL_ERROR_TEXT not in response.text)
             await get_from_pdf(response, month, year)
         else:
             print(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
@@ -213,7 +214,6 @@ async def check_fuel_users():
     chat_ids = db.registered.find()
     for chat_id in chat_ids:
         try:
-            print(chat_id["_id"])
             await application.bot.send_message(chat_id=chat_id["_id"], text="Fuel")
         except Exception as e:
             print(e)
