@@ -174,14 +174,14 @@ async def get_data_from_gov():
     month, year = get_fuel_settings()
     try:
         print(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
-        response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
+        response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"), headers={'User-Agent': 'Mozilla/5.0'})
         if FUEL_ERROR_TEXT not in response.text:
             print(response.text)
             print(FUEL_ERROR_TEXT not in response.text)
             await get_from_pdf(response, month, year)
         else:
             print(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
-            response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
+            response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"), headers={'User-Agent': 'Mozilla/5.0'})
             if FUEL_ERROR_TEXT not in response.text:
                 await get_from_pdf(response, month, year)
             else:
