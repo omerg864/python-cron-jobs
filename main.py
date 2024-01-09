@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import os
 from bs4 import BeautifulSoup
 import requests
@@ -156,15 +156,24 @@ async def send_coupons_list(coupons):
 
 
 @app.get("/coupons")
-async def coupons():
+async def coupons(request: Request):
+    authorization = request.headers.get("Authorization")
+    if authorization != os.getenv('AUTHORIZATION'):
+        return {"error": "Unauthorized"}
     await get_coupons()
     return {"message": "Success"}
 
 
 @app.get("/movies")
-async def movies():
+async def movies(request: Request):
+    authorization = request.headers.get("Authorization")
+    if authorization != os.getenv('AUTHORIZATION'):
+        return {"error": "Unauthorized"}
     return {"message": "Hello World"}
 
 @app.get("/fuel")
-async def fuel():
+async def fuel(request: Request):
+    authorization = request.headers.get("Authorization")
+    if authorization != os.getenv('AUTHORIZATION'):
+        return {"error": "Unauthorized"}
     return {"message": "Hello World"}
