@@ -176,7 +176,7 @@ async def get_data_from_gov():
         print(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
         response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"), headers={'User-Agent': 'Mozilla/5.0'})
         if FUEL_ERROR_TEXT not in response.text:
-            print(response.text)
+            print(response.content)
             print(FUEL_ERROR_TEXT not in response.text)
             await get_from_pdf(response, month, year)
         else:
