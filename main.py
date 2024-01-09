@@ -174,30 +174,29 @@ async def get_data_from_gov():
     month, year = get_fuel_settings()
     try:
         print(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
-        response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"), headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) datagov-external-client'})
+        response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"), headers={'User-Agent': 'datagov-external-client'})
         if response.headers.get('content-type') == 'application/pdf':
             await get_from_pdf(response, month, year)
         else:
             print(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
-            response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"), headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) datagov-external-client'})
+            response = requests.get(gov_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"), headers={'User-Agent': 'datagov-external-client'})
             if response.headers.get('content-type') == 'application/pdf':
                 await get_from_pdf(response, month, year)
             else:
                 print(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"))
-                response = requests.get(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"), headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) datagov-external-client'})
+                response = requests.get(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{month + 1}"), headers={'User-Agent': 'datagov-external-client'})
                 if response.headers.get('content-type') == 'application/pdf':
                     await get_from_pdf(response, month, year)
                 else:
                     print(gov_alt_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"))
                     response = requests.get(
-                        gov_alt_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"), headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) datagov-external-client'})
+                        gov_alt_url.format(month=months[month], year=f"{year}", index=f"{months[month]}"), headers={'User-Agent': 'datagov-external-client'})
                     if response.headers.get('content-type') == 'application/pdf':
                         await get_from_pdf(response, month, year)
                     else:
                         print(gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"))
                         response = requests.get(
-                            gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"), headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) datagov-external-client'})
-                        print(response.text)
+                            gov_url.format(month=months[month], year=f"{year}", index=f"{months_full[month]}"), headers={'User-Agent': 'datagov-external-client'})
                         if response.headers.get('content-type') == 'application/pdf':
                             await get_from_pdf(response, month, year)
     except Exception as e:
